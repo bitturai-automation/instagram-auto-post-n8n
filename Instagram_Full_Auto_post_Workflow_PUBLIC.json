@@ -1,0 +1,226 @@
+{
+  "name": "Instagram Full Auto post Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-001",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [-6656, 528]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_URL_HERE",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Form Responses",
+          "cachedResultUrl": "YOUR_GOOGLE_SHEET_URL_HERE"
+        },
+        "options": {}
+      },
+      "id": "node-002",
+      "name": "Get Sheet Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [-6464, 528],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-003",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [-6256, 528]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Create Instagram content.\\n\\nReturn STRICT JSON only (no text outside JSON):\\n{\\\"caption\\\":\\\"text without quotes or special characters\\\",\\\"hashtags\\\":\\\"#tag1 #tag2\\\",\\\"visualIdea\\\":\\\"design idea\\\"}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "node-004",
+      "name": "Generate Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-6064, 528]
+    },
+    {
+      "parameters": {
+        "functionCode": "let text = $json.choices[0].message.content;\n\n// clean garbage\ntext = text.replace(/```json/g, '')\n           .replace(/```/g, '')\n           .replace(/\\n/g, '')\n           .trim();\n\ntry {\n  const data = JSON.parse(text);\n  return [{ json: data }];\n} catch (e) {\n  return [{\n    json: {\n      caption: \"Default caption\",\n      hashtags: \"#design #creative\",\n      visualIdea: \"modern instagram design\"\n    }\n  }];\n}"
+      },
+      "id": "node-005",
+      "name": "Parse JSON",
+      "type": "n8n-nodes-base.function",
+      "position": [-5856, 528],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=https://image.pollinations.ai/prompt/{{encodeURIComponent($json.visualIdea + ' modern instagram ad design, typography, ui ux, behance style ' + $now)}}?width=1080&height=1080",
+        "options": {}
+      },
+      "id": "node-006",
+      "name": "Generate Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-5664, 528],
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {},
+      "id": "node-007",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "position": [-5456, 528],
+      "typeVersion": 1.1,
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID/media",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "=https://image.pollinations.ai/prompt/{{encodeURIComponent($json.visualIdea + \" modern instagram ad design, bold text overlay, typography, ui ux, behance style \" + Date.now())}}?width=1080&height=1080"
+            },
+            {
+              "name": "caption",
+              "value": "={{$json[\"caption\"]}} {{$json[\"hashtags\"]}}"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_INSTAGRAM_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-008",
+      "name": "Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-5264, 528],
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {},
+      "id": "node-009",
+      "name": "Wait2",
+      "type": "n8n-nodes-base.wait",
+      "position": [-5056, 528],
+      "typeVersion": 1.1,
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID_2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID/media_publish",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{$json[\"id\"]}}"
+            },
+            {
+              "name": "access_token",
+              "value": "YOUR_INSTAGRAM_ACCESS_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-010",
+      "name": "Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [-4864, 528],
+      "typeVersion": 4.4
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Trigger": {
+      "main": [[{ "node": "Get Sheet Data", "type": "main", "index": 0 }]]
+    },
+    "Get Sheet Data": {
+      "main": [[{ "node": "Split In Batches", "type": "main", "index": 0 }]]
+    },
+    "Split In Batches": {
+      "main": [[{ "node": "Generate Content", "type": "main", "index": 0 }]]
+    },
+    "Generate Content": {
+      "main": [[{ "node": "Parse JSON", "type": "main", "index": 0 }]]
+    },
+    "Parse JSON": {
+      "main": [[{ "node": "Generate Image", "type": "main", "index": 0 }]]
+    },
+    "Generate Image": {
+      "main": [[{ "node": "Wait", "type": "main", "index": 0 }]]
+    },
+    "Wait": {
+      "main": [[{ "node": "Upload", "type": "main", "index": 0 }]]
+    },
+    "Upload": {
+      "main": [[{ "node": "Wait2", "type": "main", "index": 0 }]]
+    },
+    "Wait2": {
+      "main": [[{ "node": "Publish", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    { "name": "groq" },
+    { "name": "daily-post" },
+    { "name": "instagram" }
+  ]
+}

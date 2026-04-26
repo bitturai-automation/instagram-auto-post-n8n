@@ -94,7 +94,7 @@ Feel free to fork, improve, and raise PRs! Ideas welcome:
 
 ## 📬 Connect
 
-Built by [Your Name] — feel free to connect on [LinkedIn](https://linkedin.com/in/your-profile)!
+Built by Bittu Rai — feel free to connect on [LinkedIn](https://www.linkedin.com/in/bitturai/)!
 
 ---
 

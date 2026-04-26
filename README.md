@@ -99,3 +99,4 @@ Built by Bittu Rai — feel free to connect on [LinkedIn](https://www.linkedin.c
 ---
 
 ⭐ If this helped you, please star the repo!
+<img width="800" height="404" alt="1777222625561" src="https://github.com/user-attachments/assets/d4389d64-c309-4d0e-b13a-a7b170d708c7" />
